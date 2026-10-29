@@ -50,7 +50,7 @@ def api_get_source_render(source_id):
     fi_enhancement_brightness = request.args.get('fi_enhancement_brightness', default=1.0, type=float)
     fi_enhancement_sharpness = request.args.get('fi_enhancement_sharpness', default=1.0, type=float)
 
-    f_ = request.args.get('f', default=False, type=is_it_true)
+    f_ = request.args.get('f_', default=False, type=is_it_true)
     f_bg_r = request.args.get("f_bg_r", default=250, type=int)
     f_bg_g = request.args.get("f_bg_g", default=250, type=int)
     f_bg_b = request.args.get("f_bg_b", default=250, type=int)
@@ -180,7 +180,7 @@ def get_source_render(source_id):
     fi_enhancement_contrast = request.args.get('fi_enhancement_contrast', default=1.0, type=float)
     fi_enhancement_brightness = request.args.get('fi_enhancement_brightness', default=1.0, type=float)
     fi_enhancement_sharpness = request.args.get('fi_enhancement_sharpness', default=1.0, type=float)
-    f_ = request.args.get('f', default=False, type=is_it_true)
+    f_ = request.args.get('f_', default=False, type=is_it_true)
 
     conn = database.create_connection()
     source = SourceService.get_source_by_id(conn, source_id)

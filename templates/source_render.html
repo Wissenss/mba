@@ -85,7 +85,7 @@
         </div>
 
         <div class="card-content" id="render-card-content">
-            <img id="source-render" src="/api/source/{{ source.id }}/render?height={{height}}&width={{width}}&strip_width={{strip_width}}&max_strips={{max_strips}}&kind={{kind}}&radius={{radius}}&radius_inner={{radius_inner}}&f={{f}}" alt="Source Render"/>
+            <img id="source-render" src="/api/source/{{ source.id }}/render?height={{height}}&width={{width}}&strip_width={{strip_width}}&max_strips={{max_strips}}&kind={{kind}}&radius={{radius}}&radius_inner={{radius_inner}}&f_={{f_}}&fi_enhancement_color={{fi_enhancement_color}}&fi_enhancement_contrast={{fi_enhancement_contrast}}&fi_enhancement_brightness={{fi_enhancement_brightness}}&fi_enhancement_sharpness={{fi_enhancement_sharpness}}" alt="Source Render"/>
         </div>
     </div>
 
@@ -117,7 +117,7 @@
                 `&kind=${kind}`,
                 `&radius=${radius}`,
                 `&radius_inner=${radius_inner}`,
-                `&f=${f == 'true'}`,
+                `&f_=${f == 'true'}`,
                 `&fi_enhancement_color=${fi_enhancement_color}`,
                 `&fi_enhancement_contranst=${fi_enhancement_contrast}`,
                 `&fi_enhancement_brightness=${fi_enhancement_brightness}`,
