@@ -15,7 +15,7 @@
     <ul>
         {% for s in sources %}
             <li>
-                <a href="/source/{{ s.id }}/render?height=500&width=900&strip_width=20&max_strips=1000&kind=0&radius=2000&radius_inner=200&f_=false">{{s.metadata_name}} ({{s.metadata_year}}) ({{s.id}})</a>
+                <a href="/source/{{ s.id }}/render?height=500&width=900&strip_width=20&max_strips=1000&kind=0&radius=2000&radius_inner=200&f_=0">{{s.metadata_name}} ({{s.metadata_year}}) ({{s.id}})</a>
             </li>
         {% endfor %}
     </ul>

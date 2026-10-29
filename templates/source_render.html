@@ -52,10 +52,10 @@
             <input  type="number" id="radius" value="{{ radius }}" min="1" max="10000"/>
             <label for="radius">inner radius:</label>
             <input  type="number" id="radius_inner" value="{{ radius_inner }}" min="1" max="10000"/>
-            <label for="f">frame: </label>
-            <select id="f" value="{{f}}">
-                <option value="false">none</option>
-                <option value="true">default</option>
+            <label for="f_">frame {{f_}}: </label>
+            <select id="f_" value="{{f_}}">
+                <option value="0">none</option>
+                <option value="1">default</option>
             </select>
             <label for="fi_enhancement_color">color enhance: </label>
             <input id="fi_enhancement_color" type="number" step="0.01" min="-2" max="2" value="{{fi_enhancement_color}}"/>
@@ -81,7 +81,7 @@
             <a onclick="zoomout()" href="#">zoom-out</a>
             <span id="mb-zoom-lbl" style="color: #777; font-size: lighter"> <i> (1x)</i></span>
             
-            <a id="download-button" style="float: right" href="/api/source/{{ source.id }}/render?height={{height}}&width={{width}}&strip_width={{strip_width}}&max_strips={{max_strips}}&kind={{kind}}&radius={{radius}}&radius_inner={{radius_inner}}&f={{f}}" download="source_{{source.id}}_render.png">download</a>
+            <a id="download-button" style="float: right" href="/api/source/{{ source.id }}/render?height={{height}}&width={{width}}&strip_width={{strip_width}}&max_strips={{max_strips}}&kind={{kind}}&radius={{radius}}&radius_inner={{radius_inner}}&f_={{f_}}&fi_enhancement_color={{fi_enhancement_color}}&fi_enhancement_contrast={{fi_enhancement_contrast}}&fi_enhancement_brightness={{fi_enhancement_brightness}}&fi_enhancement_sharpness={{fi_enhancement_sharpness}}" download="source_{{source.id}}_render.png">download</a>
         </div>
 
         <div class="card-content" id="render-card-content">
@@ -103,7 +103,7 @@
             const fi_enhancement_contrast = document.getElementById('fi_enhancement_contrast').value;
             const fi_enhancement_brightness = document.getElementById('fi_enhancement_brightness').value;
             const fi_enhancement_sharpness = document.getElementById('fi_enhancement_sharpness').value;
-            const f = document.getElementById('f').value;
+            const f_ = document.getElementById('f_').value;
 
             const img = document.getElementById('source-render');
             const btn = document.getElementById('download-button');
@@ -117,7 +117,7 @@
                 `&kind=${kind}`,
                 `&radius=${radius}`,
                 `&radius_inner=${radius_inner}`,
-                `&f_=${f == 'true'}`,
+                `&f_=${f_}`,
                 `&fi_enhancement_color=${fi_enhancement_color}`,
                 `&fi_enhancement_contranst=${fi_enhancement_contrast}`,
                 `&fi_enhancement_brightness=${fi_enhancement_brightness}`,

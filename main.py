@@ -13,11 +13,6 @@ database.update_schema()
 
 app = Flask(__name__)
 
-def is_it_true(value):
-    print(f"is_it_true, value: {value}")
-  
-    return value.lower() == 'true'
-
 def require_appkey(request_func):
     @wraps(request_func)
 
@@ -50,7 +45,7 @@ def api_get_source_render(source_id):
     fi_enhancement_brightness = request.args.get('fi_enhancement_brightness', default=1.0, type=float)
     fi_enhancement_sharpness = request.args.get('fi_enhancement_sharpness', default=1.0, type=float)
 
-    f_ = request.args.get('f_', default=False, type=is_it_true)
+    f_ = request.args.get('f_', default=0, type=int)
     f_bg_r = request.args.get("f_bg_r", default=250, type=int)
     f_bg_g = request.args.get("f_bg_g", default=250, type=int)
     f_bg_b = request.args.get("f_bg_b", default=250, type=int)
@@ -61,7 +56,7 @@ def api_get_source_render(source_id):
 
     #f_t_l = request.args.get("f_t_l", default="frame title", type=str)
 
-    print(f"request processing... f_: {f_}")
+    #print(f"request processing... f_: {f_}")
 
     conn = database.create_connection()
 
@@ -90,7 +85,7 @@ def api_get_source_render(source_id):
     if fi_enhancement_sharpness != 1.0:
         img = ImageEnhance.Sharpness(img).enhance(fi_enhancement_sharpness)
 
-    if f_ == True:
+    if f_ == 1:
         img : Image = render.render_frame(f"{source.metadata_name} ({source.metadata_year})", "", img, Color(f_bg_r, f_bg_g, f_bg_b), Color(f_fg_r, f_fg_g, f_fg_b), f_h_h, width, height)
     
     img_io = io.BytesIO()
@@ -180,7 +175,7 @@ def get_source_render(source_id):
     fi_enhancement_contrast = request.args.get('fi_enhancement_contrast', default=1.0, type=float)
     fi_enhancement_brightness = request.args.get('fi_enhancement_brightness', default=1.0, type=float)
     fi_enhancement_sharpness = request.args.get('fi_enhancement_sharpness', default=1.0, type=float)
-    f_ = request.args.get('f_', default=False, type=is_it_true)
+    f_ = request.args.get('f_', default=0, type=int)
 
     conn = database.create_connection()
     source = SourceService.get_source_by_id(conn, source_id)
