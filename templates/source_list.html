@@ -3,21 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MBA - List</title>
+    <title>MBA - Library</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png')}}">
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/theme.css') }}"/>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/library.css') }}"/>
 </head>
 <body>
-    <a href="{{ url_for('get_contributors') }}">[contributors]</a>
-    
-    <h2>available sources</h2>
+    <header class="topbar">
+        <a class="brand" href="{{ url_for('get_source_list') }}">
+            <i class="icon icon-film"></i> MBA <small>movie barcodes</small>
+        </a>
+        <a href="{{ url_for('get_contributors') }}">contributors</a>
+    </header>
 
-    <ul>
-        {% for s in sources %}
-            <li>
-                <a href="/source/{{ s.id }}/render?height=500&width=900&strip_width=20&max_strips=1000&kind=0&radius=2000&radius_inner=200&f_=0">{{s.metadata_name}} ({{s.metadata_year}}) ({{s.id}})</a>
-            </li>
-        {% endfor %}
-    </ul>
+    <main class="page">
+        <div class="library-head">
+            <div>
+                <h1>Library</h1>
+                <p>{{ sources|length }} {{ 'source' if sources|length == 1 else 'sources' }}</p>
+            </div>
+            <!-- hidden for now
+            <div class="segmented" role="radiogroup" aria-label="color">
+                <input type="radio" name="color_mode" id="cm-0" value="0" checked>
+                <label for="cm-0"><i class="icon icon-contrast"></i> average</label>
+                <input type="radio" name="color_mode" id="cm-1" value="1">
+                <label for="cm-1"><i class="icon icon-star"></i> brightest</label>
+            </div> 
+            -->
+        </div>
+
+        {% if sources %}
+        <div class="library">
+            {% for s in sources %}
+            <a class="movie-card" data-id="{{ s.id }}" href="/source/{{ s.id }}/render?height=500&width=900&strip_width=20&max_strips=1000&kind=0&radius=2000&radius_inner=200&f=false&color_mode=0&fi_enhancement_color=2.0&fi_enhancement_brightness=1.2">
+                <div class="film-edge"></div>
+                <div class="thumb">
+                    <img class="loading" alt="barcode of {{ s.metadata_name }}" loading="lazy"
+                        src="/api/source/{{ s.id }}/thumbnail">
+                    <div class="thumb-missing"><i class="icon icon-video"></i> no data for this color mode</div>
+                </div>
+                <div class="film-edge"></div>
+                <div class="movie-meta">
+                    <h2 title="{{ s.metadata_name }}">{{ s.metadata_name }}</h2>
+                    <span class="year">{{ s.metadata_year }}</span>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty">
+            <i class="icon icon-film"></i>
+            <p>No sources yet. Run <code>python feeder.py</code> to ingest your movies.</p>
+        </div>
+        {% endif %}
+    </main>
+
+    <script>
+        // thumbnails fade in once loaded; a source without data for the mode shows a placeholder
+        for (const img of document.querySelectorAll('.thumb img')) {
+            img.addEventListener('load', () => {
+                img.classList.remove('loading');
+                img.parentElement.classList.remove('missing');
+            });
+            img.addEventListener('error', () => img.parentElement.classList.add('missing'));
+
+            // it may have finished before this script ran
+            if (img.complete) {
+                img.classList.remove('loading');
+                if (img.naturalWidth === 0) img.parentElement.classList.add('missing');
+            }
+        }
+
+        // switching the color mode refreshes every thumbnail and the links to the render page
+        for (const radio of document.querySelectorAll('input[name="color_mode"]')) {
+            radio.addEventListener('change', () => {
+                for (const card of document.querySelectorAll('.movie-card')) {
+                    const img = card.querySelector('img');
+                    img.classList.add('loading');
+                    img.src = img.src.replace(/color_mode=\d/, `color_mode=${radio.value}`);
+                    card.href = card.href.replace(/color_mode=\d/, `color_mode=${radio.value}`);
+                }
+            });
+        }
+    </script>
 </body>
 </html>

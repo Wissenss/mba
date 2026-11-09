@@ -1,10 +1,11 @@
+from flask import Flask, jsonify, request, send_file, send_from_directory, render_template
 import io
 import os
 from functools import wraps
 from PIL import Image, ImageEnhance
 from flask import Flask, redirect, jsonify, url_for, request, abort, send_file, render_template
 import database
-from domain import Color, Source, SourceKind, SourceFrame, SourceService
+from domain import Color, ColorMode, Source, SourceKind, SourceFrame, SourceService
 import render
 import ingester
 import environment
@@ -39,6 +40,7 @@ def api_get_source_render(source_id):
     kind = request.args.get('kind', default=0, type=int) # gotta add an enum for the render kind... someone do that later
     radius = request.args.get('radius', default=400, type=int)
     radius_inner = request.args.get('radius_inner', default=20, type=int)
+    color_mode = request.args.get('color_mode', default=ColorMode.AVERAGE, type=int)
     
     fi_enhancement_color = request.args.get('fi_enhancement_color', default=1.0, type=float)
     fi_enhancement_contrast = request.args.get('fi_enhancement_contrast', default=1.0, type=float)
@@ -67,7 +69,10 @@ def api_get_source_render(source_id):
     data = []
 
     for f in frames:
-        data.append(f.color)
+        data.append(f.get_color(color_mode))
+
+    if any(c is None for c in data):
+        return jsonify(error="this source has no brightest color data yet, run feeder.py to backfill it"), 409
 
     if kind == 0:
         img : Image = render.render_force_max_lines_force_size(data, height, strip_width, max_strips, width)
@@ -171,6 +176,8 @@ def get_source_render(source_id):
     kind = request.args.get('kind', default=0, type=int) # gotta add an enum for the render kind... someone do that latter
     radius = request.args.get('radius', default=400, type=int)
     radius_inner = request.args.get('radius_inner', default=20, type=int)
+    color_mode = request.args.get('color_mode', default=ColorMode.AVERAGE, type=int)
+
     fi_enhancement_color = request.args.get('fi_enhancement_color', default=1.0, type=float)
     fi_enhancement_contrast = request.args.get('fi_enhancement_contrast', default=1.0, type=float)
     fi_enhancement_brightness = request.args.get('fi_enhancement_brightness', default=1.0, type=float)
@@ -191,15 +198,52 @@ def get_source_render(source_id):
                            kind=kind, 
                            radius=radius, 
                            radius_inner=radius_inner,
+                           color_mode=color_mode,
                            f_=f_,
                            fi_enhancement_color=fi_enhancement_color,
                            fi_enhancement_contrast=fi_enhancement_contrast,
                            fi_enhancement_brightness=fi_enhancement_brightness,
                            fi_enhancement_sharpness=fi_enhancement_sharpness)
 
+@app.route('/api/source/<int:source_id>/thumbnail', methods=['GET'])
+def get_source_thumbnail(source_id):
+    conn = database.create_connection()
+
+    thumbnail = SourceService.get_source_thumbnail(conn, source_id)
+
+    if not thumbnail:
+        source = SourceService.get_source_by_id(conn, source_id)
+        
+        frames = SourceService.get_source_frames(conn, source_id)
+
+        data = []
+
+        for f in frames:
+            data.append(f.get_color(ColorMode.AVERAGE))
+
+        img : Image = render.render_force_max_lines_force_size(data, 200, 20, 500, 350)
+
+        img = ImageEnhance.Brightness(img).enhance(1.2)
+        img = ImageEnhance.Color(img).enhance(2)
+        
+        thumbnail = io.BytesIO()
+        
+        img.save(thumbnail, 'PNG')
+        
+        thumbnail.seek(0)
+
+        SourceService.set_source_thumbnail(conn, source_id, thumbnail)
+
+    return send_file(thumbnail, mimetype='image/png')
+
 @app.route('/contributors', methods=['GET'])
 def get_contributors():
     return render_template('contributors.html')
+
+@app.route('/assets/fonts/<path:filename>')
+def asset_fonts(filename):
+    # the ui uses the same fonts as the framed renders
+    return send_from_directory(os.path.join('assets', 'fonts'), filename)
 
 @app.route('/static/<path:filename>')
 def static_file(filename):

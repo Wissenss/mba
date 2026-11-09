@@ -1,6 +1,7 @@
 python-dotenv
 db-sqlite3
 pillow
+numpy
 requests
 Flask
 Flask-RESTful
