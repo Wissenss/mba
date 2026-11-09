@@ -44,6 +44,12 @@ def update_schema():
         if version < name:
             sql = read_file_query(os.path.join(migrations_dir, file))
             cur.executescript(sql)
+
+            # record the applied migration so it doesn't run again on the next start
+            cur.execute("UPDATE Settings SET value = ? WHERE key = 'db_version';", [name])
+            con.commit()
+
+            version = name
         
 if __name__ == "__main__":
     update_schema()

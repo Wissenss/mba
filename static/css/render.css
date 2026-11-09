@@ -1,36 +1,219 @@
-body {
+/* ---------- title ---------- */
+
+.hero {
+    margin-bottom: 22px;
+}
+
+.hero .eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.hero h1 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: clamp(34px, 5vw, 56px);
+    line-height: 1;
+    letter-spacing: 0.01em;
+}
+
+.hero h1 .year {
+    color: var(--text-muted);
+    font-family: var(--font-body);
+    font-size: 0.5em;
+    font-weight: 400;
+    letter-spacing: 0;
+}
+
+.hero .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 14px;
+}
+
+.hero .chip .hash {
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ---------- the screen ---------- */
+
+.screen {
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: #050506;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+}
+
+.stage {
+    position: relative;
     display: grid;
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto auto 1fr;
+    place-items: center;
+    min-height: 240px;
+    max-height: 70vh;
+    padding: 28px;
+    overflow: auto;
+    background: radial-gradient(ellipse at center, #121216 0%, #050506 70%);
 }
 
-#render-card {
+.stage img {
+    display: block;
+    max-width: 100%;
+    max-height: calc(70vh - 56px);
+    box-shadow: 0 0 80px rgba(255, 255, 255, 0.04);
+    transition: opacity 0.25s;
+}
+
+.stage.zoomed {
+    place-items: start;
+}
+
+.stage.zoomed img {
+    max-width: none;
+    max-height: none;
+}
+
+.stage.loading img {
+    opacity: 0.35;
+}
+
+.stage .render-error {
+    display: none;
+    max-width: 420px;
+    padding: 14px 16px;
+    border: 1px solid rgba(255, 107, 94, 0.35);
+    border-radius: 8px;
+    background: rgba(255, 107, 94, 0.08);
+    color: var(--danger);
+    text-align: center;
+}
+
+.stage.error img {
+    display: none;
+}
+
+.stage.error .render-error {
+    display: block;
+}
+
+.screen-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+}
+
+.screen-bar .caption {
+    flex: 1;
+    min-width: 200px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 12px;
+}
+
+.screen-bar .zoom-level {
+    min-width: 48px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    text-align: center;
+}
+
+/* ---------- controls ---------- */
+
+.controls {
+    margin-top: 20px;
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+}
+
+.controls-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 16px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.controls-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px 28px;
+    align-items: flex-end;
+}
+
+.control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.control-group > span {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.numbers {
     display: grid;
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 14px;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
 }
 
-#render-card-header {
-    grid-column: 1;
-    grid-row: 1;
-}
-
-#render-card-content {
+.filters {
     display: grid;
-    grid-column: 1;
-    grid-row: 2;
-    grid-template-rows: 1fr auto 1fr;
-    grid-template-columns: 1fr auto 1fr;
-    /* overflow: hidden; */
-    overflow: scroll;
-    justify-items: center;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 14px;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
 }
 
-#source-render {
-    grid-row: 2;
-    grid-column: 2;
-    min-width: 0px;
-    min-height: 0px;
-    width: auto;
-    scale: 1;
+.controls-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+/* fields that only make sense for one render kind */
+.controls[data-kind="0"] .only-circle,
+.controls[data-kind="1"] .only-line {
+    display: none;
+}
+
+@media (max-width: 640px) {
+    .page {
+        padding: 20px 16px 48px;
+    }
+
+    .topbar {
+        padding: 10px 16px;
+    }
+
+    .stage {
+        padding: 16px;
+    }
 }

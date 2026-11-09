@@ -1,3 +1,4 @@
+from io import BytesIO
 import sqlite3
 
 import database
@@ -14,6 +15,10 @@ class Color:
 class SourceKind:
     UNKNOWN : int = 0
     MOVIE : int = 1
+
+class ColorMode:
+    AVERAGE : int = 0   # mean color of the frame
+    BRIGHTEST : int = 1 # brightest pixel of the frame (see ingester.py)
 
 class Source:
     def __init__(self):
@@ -32,6 +37,9 @@ class SourceFrame:
         self.color_r : int = 0
         self.color_g : int = 0
         self.color_b : int = 0
+        self.bright_r : int | None = None
+        self.bright_g : int | None = None
+        self.bright_b : int | None = None
 
     @property
     def color(self):
@@ -42,6 +50,25 @@ class SourceFrame:
         self.color_r = value.r
         self.color_g = value.g
         self.color_b = value.b
+
+    @property
+    def bright_color(self):
+        if self.bright_r is None:
+            return None
+
+        return Color(self.bright_r, self.bright_g, self.bright_b)
+
+    @bright_color.setter
+    def bright_color(self, value : Color):
+        self.bright_r = value.r
+        self.bright_g = value.g
+        self.bright_b = value.b
+
+    def get_color(self, mode : int):
+        if mode == ColorMode.BRIGHTEST:
+            return self.bright_color
+
+        return self.color
 
 class SourceService:
     def __init__(self):
@@ -118,20 +145,50 @@ class SourceService:
 
         source = cls.get_source_by_id(conn, source_id) # this is only here to make sure a source exists... we may do some other validation in the future with this values idk
 
-        sql = "INSERT INTO SourceFrame(source_id, frame_index, color_r, color_g, color_b) VALUES(?, ?, ?, ?, ?);"
+        sql = "INSERT INTO SourceFrame(source_id, frame_index, color_r, color_g, color_b, bright_r, bright_g, bright_b) VALUES(?, ?, ?, ?, ?, ?, ?, ?);"
 
-        cur.execute(sql, [source.id, source_frame.frame_index, source_frame.color_r, source_frame.color_g, source_frame.color_b])
+        cur.execute(sql, [source.id, source_frame.frame_index, source_frame.color_r, source_frame.color_g, source_frame.color_b, source_frame.bright_r, source_frame.bright_g, source_frame.bright_b])
 
         if do_commit:
             conn.commit()
-        
+
         return cur.lastrowid
+
+    @classmethod
+    def create_source_frames(cls, conn : sqlite3.Connection, source_id : int, source_frames : list[SourceFrame], do_commit : bool = True):
+        # bulk version of create_source_frame, a movie has ~170k frames so one INSERT per frame is slow
+        cur = conn.cursor()
+
+        source = cls.get_source_by_id(conn, source_id)
+
+        sql = "INSERT INTO SourceFrame(source_id, frame_index, color_r, color_g, color_b, bright_r, bright_g, bright_b) VALUES(?, ?, ?, ?, ?, ?, ?, ?);"
+
+        params = [[source.id, sf.frame_index, sf.color_r, sf.color_g, sf.color_b, sf.bright_r, sf.bright_g, sf.bright_b] for sf in source_frames]
+
+        cur.executemany(sql, params)
+
+        if do_commit:
+            conn.commit()
+
+    @classmethod
+    def update_source_frames_bright(cls, conn : sqlite3.Connection, source_id : int, colors : list[Color], do_commit : bool = True):
+        # colors[i] is the brightest color of the frame with frame_index = i
+        cur = conn.cursor()
+
+        sql = "UPDATE SourceFrame SET bright_r = ?, bright_g = ?, bright_b = ? WHERE source_id = ? AND frame_index = ?;"
+
+        params = [[c.r, c.g, c.b, source_id, i] for i, c in enumerate(colors)]
+
+        cur.executemany(sql, params)
+
+        if do_commit:
+            conn.commit()
 
     @classmethod
     def get_source_frames(cls, conn : sqlite3.Connection, source_id : int):
         cur = conn.cursor()
 
-        sql = "SELECT id, source_id, frame_index, color_r, color_g, color_b FROM SourceFrame WHERE source_id = ?"
+        sql = "SELECT id, source_id, frame_index, color_r, color_g, color_b, bright_r, bright_g, bright_b FROM SourceFrame WHERE source_id = ? ORDER BY frame_index;"
 
         cur.execute(sql, [source_id])
 
@@ -146,10 +203,42 @@ class SourceService:
             sf.color_r = row[3]
             sf.color_g = row[4]
             sf.color_b = row[5]
+            sf.bright_r = row[6]
+            sf.bright_g = row[7]
+            sf.bright_b = row[8]
 
             frames.append(sf)
 
         return frames
+
+    @classmethod
+    def get_source_frame_count(cls, conn : sqlite3.Connection, source_id : int):
+        cur = conn.cursor()
+
+        cur.execute("SELECT COUNT(*) FROM SourceFrame WHERE source_id = ?;", [source_id])
+
+        return cur.fetchone()[0]
+
+    @classmethod
+    def do_source_has_bright(cls, conn : sqlite3.Connection, source_id : int):
+        # true when every frame of the source has its brightest color stored
+        cur = conn.cursor()
+
+        sql = "SELECT COUNT(*) FROM SourceFrame WHERE source_id = ? AND bright_r IS NULL;"
+
+        cur.execute(sql, [source_id])
+
+        return cur.fetchone()[0] == 0
+
+    @classmethod
+    def get_source_id_by_imdb_id(cls, conn : sqlite3.Connection, imdb_id : str):
+        cur = conn.cursor()
+
+        cur.execute("SELECT id FROM Source WHERE imdb_id = ?;", [imdb_id])
+
+        row = cur.fetchone()
+
+        return row[0] if row else None
 
     @classmethod
     def do_source_exists(cls, conn : sqlite3.Connection, sha512 : str, imdb_id : str):
@@ -177,6 +266,27 @@ class SourceService:
             return rows[0]
         else:
             return 0
+
+    @classmethod
+    def get_source_thumbnail(cls, conn : sqlite3.Connection, source_id : int):
+        cur = conn.cursor()
+
+        cur.execute("SELECT thumbnail FROM Source WHERE id = ?", [source_id])
+
+        r = cur.fetchone()
+
+        if r[0]:
+            return BytesIO(r[0])
+
+        return None
+
+    @classmethod
+    def set_source_thumbnail(cls, conn : sqlite3.Connection, source_id : int, thumbanil : BytesIO):
+        cur = conn.cursor()
+
+        cur.execute("UPDATE Source SET thumbnail = ? WHERE id = ?", [thumbanil.getvalue(), source_id])
+
+        conn.commit()
 
 if __name__ == "__main__":
     conn = database.create_connection()

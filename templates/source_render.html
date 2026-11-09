@@ -3,159 +3,187 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MBA - Render</title>
+    <title>MBA - {{ source.metadata_name }}</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png')}}">
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/theme.css') }}"/>
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/render.css') }}"/>
 </head>
 <body>
-    <a href="{{ url_for('get_source_list') }}">[back to listing]</a>
+    <header class="topbar">
+        <a class="brand" href="{{ url_for('get_source_list') }}">
+            <i class="icon icon-film"></i> MBA <small>movie barcodes</small>
+        </a>
+        <span class="spacer"></span>
+        <a class="btn btn-ghost" href="{{ url_for('get_source_list') }}"><i class="icon icon-back"></i> Library</a>
+        <a href="{{ url_for('get_contributors') }}">contributors</a>
+    </header>
 
-    <h2>source render</h2>
+    <main class="page">
+        <section class="hero">
+            <div class="eyebrow"><i class="icon icon-video"></i> now showing</div>
+            <h1>{{ source.metadata_name }} <span class="year">{{ source.metadata_year }}</span></h1>
+            <div class="chips">
+                <span class="chip">IMDb <a href="https://www.imdb.com/title/{{ source.imdb_id }}/" target="_blank" rel="noopener">{{ source.imdb_id }}</a></span>
+                <span class="chip">id <strong>{{ source.id }}</strong></span>
+                <span class="chip" title="{{ source.sha512 }}">sha512 <span class="mono hash">{{ source.sha512 }}</span></span>
+            </div>
+        </section>
 
-    <div class="card">
-        <div class="card-header">
-            <span>source</span>
-        </div>
+        <section class="screen">
+            <div class="film-edge"></div>
+            <div class="stage loading" id="stage">
+                <img id="source-render" alt="movie barcode of {{ source.metadata_name }}"
+                    src="/api/source/{{ source.id }}/render?height={{height}}&width={{width}}&strip_width={{strip_width}}&max_strips={{max_strips}}&kind={{kind}}&radius={{radius}}&radius_inner={{radius_inner}}&f={{ 'true' if f else 'false' }}&color_mode={{color_mode}}&fi_enhancement_color={{fi_enhancement_color}}&fi_enhancement_brightness={{fi_enhancement_brightness}}"/>
+                <div class="render-error">
+                    Could not render this barcode. If you picked <strong>brightest</strong>, this source may still need a backfill: run <code>python feeder.py</code>.
+                </div>
+            </div>
+            <div class="film-edge"></div>
+            <div class="screen-bar">
+                <span class="caption" id="caption"></span>
+                <button type="button" class="btn btn-icon btn-ghost" onclick="zoomBy(1 / 1.25)" title="zoom out" aria-label="zoom out"><i class="icon icon-zoom-out"></i></button>
+                <span class="zoom-level" id="zoom-level">fit</span>
+                <button type="button" class="btn btn-icon btn-ghost" onclick="zoomBy(1.25)" title="zoom in" aria-label="zoom in"><i class="icon icon-zoom-in"></i></button>
+                <button type="button" class="btn btn-icon btn-ghost" onclick="zoomFit()" title="fit to screen" aria-label="fit to screen"><i class="icon icon-zoom-reset"></i></button>
+                <a class="btn" id="download-button" download="source_{{ source.id }}_render.png" href="#"><i class="icon icon-download"></i> Download</a>
+            </div>
+        </section>
 
-        <div class="card-content">
-            <p><strong>title:</strong> {{ source.metadata_name }} ({{ source.metadata_year }})</p>
-            <p><strong>source_id:</strong> {{ source.id }}</p>
-            <p><strong>imdb_id:</strong> <a href="https://www.imdb.com/title/{{ source.imdb_id }}/" target="_blank">{{ source.imdb_id }}</a></p>
-            <P><strong>sha512: </strong> {{ source.sha512 }}</P>
-        </div>
-    </div>
+        <form class="controls" id="params" data-kind="{{ kind }}" autocomplete="off" onsubmit="event.preventDefault(); render();">
+            <div class="controls-head"><i class="icon icon-gear"></i> parameters</div>
 
-    <form class="card" autocomplete="off" onsubmit="event.preventDefault(); render();">
-        <div class="card-header">
-            <span>parameters</span>
-        </div>
- 
-        <div class="card-content">
-            <p style="color: #777"><i>*set the parameters below and click render to update the image</i></p>
+            <div class="controls-row">
+                <div class="control-group">
+                    <span>shape</span>
+                    <div class="segmented">
+                        <input type="radio" name="kind" id="kind-0" value="0" {% if kind == 0 %}checked{% endif %}>
+                        <label for="kind-0"><i class="icon icon-line"></i> line</label>
+                        <input type="radio" name="kind" id="kind-1" value="1" {% if kind == 1 %}checked{% endif %}>
+                        <label for="kind-1"><i class="icon icon-circle"></i> circle</label>
+                    </div>
+                </div>
 
-            <label for="width">width:</label>
-            <input  type="number" id="width" value="{{ width }}" min="10" max="4200"/>
-            <label for="height">height:</label>
-            <input  type="number" id="height" value="{{ height }}" min="10" max="4200"/>
-            <label for="strip_width">strip_width:</label>   
-            <input  type="number" id="strip_width" value="{{ strip_width }}" min="1" max="100"/>
-            <label for="max_strips">max_strips:</label>
-            <input  type="number" id="max_strips" value="{{ max_strips }}" min="1" max="10000"/>
-            <label for="kind">kind:</label>
-            <select id="kind" value="{{kind}}">
-                <option value="0">line</option>
-                <option value="1">circle</option>
-                <option value="2">circle 2</option>
-            </select>
-            <label for="radius">radius:</label>
-            <input  type="number" id="radius" value="{{ radius }}" min="1" max="10000"/>
-            <label for="radius">inner radius:</label>
-            <input  type="number" id="radius_inner" value="{{ radius_inner }}" min="1" max="10000"/>
-            <label for="f_">frame {{f_}}: </label>
-            <select id="f_" value="{{f_}}">
-                <option value="0">none</option>
-                <option value="1">default</option>
-            </select>
-            <label for="fi_enhancement_color">color enhance: </label>
-            <input id="fi_enhancement_color" type="number" step="0.01" min="-2" max="2" value="{{fi_enhancement_color}}"/>
-            <label for="fi_enhancement_contrast">contrast enhance: </label>
-            <input id="fi_enhancement_contrast" type="number" step="0.01" min="-2" max="2" value="{{fi_enhancement_contrast}}"/>
-            <label for="fi_enhancement_brightness">brightness enhance: </label>
-            <input id="fi_enhancement_brightness" type="number" step="0.01" min="-2" max="2" value="{{fi_enhancement_brightness}}"/>
-            <label for="fi_enhancement_sharpness">sharpness enhance: </label>
-            <input id="fi_enhancement_sharpness" type="number" step="0.01" min="-2" max="2" value="{{fi_enhancement_sharpness}}"/>
+                <!-- <div class="control-group">
+                    <span>color</span>
+                    <div class="segmented">
+                        <input type="radio" name="color_mode" id="cm-0" value="0" {% if color_mode == 0 %}checked{% endif %}>
+                        <label for="cm-0"><i class="icon icon-contrast"></i> average</label>
+                        <input type="radio" name="color_mode" id="cm-1" value="1" {% if color_mode == 1 %}checked{% endif %}>
+                        <label for="cm-1"><i class="icon icon-star"></i> brightest</label>
+                    </div>
+                </div> -->
 
-            <input type="submit" value="render">
-        </div>
+                <div class="control-group">
+                    <span>frame</span>
+                    <div class="segmented">
+                        <input type="radio" name="f_" id="f-0" value="0" {% if not f %}checked{% endif %}>
+                        <label for="f-0">none</label>
+                        <input type="radio" name="f_" id="f-1" value="1" {% if f %}checked{% endif %}>
+                        <label for="f-1"><i class="icon icon-frame"></i> titled</label>
+                    </div>
+                </div>
+            </div>
 
-    </form>
+            <div class="numbers">
+                <label class="field"><span>width</span><input type="number" name="width" value="{{ width }}" min="10" max="4200"></label>
+                <label class="field"><span>height</span><input type="number" name="height" value="{{ height }}" min="10" max="4200"></label>
+                <label class="field only-line"><span>strip width</span><input type="number" name="strip_width" value="{{ strip_width }}" min="1" max="100"></label>
+                <label class="field"><span>max strips</span><input type="number" name="max_strips" value="{{ max_strips }}" min="1" max="10000"></label>
+                <label class="field only-circle"><span>radius</span><input type="number" name="radius" value="{{ radius }}" min="1" max="10000"></label>
+                <label class="field only-circle"><span>inner radius</span><input type="number" name="radius_inner" value="{{ radius_inner }}" min="1" max="10000"></label>
+            </div>
 
-    <div id="render-card" class="card">
-        <div id="render-card-header" class="card-header">
-            <span>movie barcode</span>
-            <span id="mb-param-lbl" style="color: #777; font-size: lighter"> <i>(size: {{width}}x{{height}}, strip_width: {{strip_width}}, max_strips: {{max_strips}})</i></span>
-            
-            <a onclick="zoomin()" href="#">zoom-in</a>
-            <span> / </span>
-            <a onclick="zoomout()" href="#">zoom-out</a>
-            <span id="mb-zoom-lbl" style="color: #777; font-size: lighter"> <i> (1x)</i></span>
-            
-            <a id="download-button" style="float: right" href="/api/source/{{ source.id }}/render?height={{height}}&width={{width}}&strip_width={{strip_width}}&max_strips={{max_strips}}&kind={{kind}}&radius={{radius}}&radius_inner={{radius_inner}}&f_={{f_}}&fi_enhancement_color={{fi_enhancement_color}}&fi_enhancement_contrast={{fi_enhancement_contrast}}&fi_enhancement_brightness={{fi_enhancement_brightness}}&fi_enhancement_sharpness={{fi_enhancement_sharpness}}" download="source_{{source.id}}_render.png">download</a>
-        </div>
+            <div class="filters">
+                <label class="field"><span>color</span><input type="number" name="fi_enhancement_color" value="{{ fi_enhancement_color }}" min="0.1" max="2.5" step="0.1"/></label>
+                <label class="field"><span>brightness</span><input type="number" name="fi_enhancement_brightness" value="{{ fi_enhancement_brightness }}" min="0.1" max="2.5" step="0.1"/></label>
+            </div>
 
-        <div class="card-content" id="render-card-content">
-            <img id="source-render" src="/api/source/{{ source.id }}/render?height={{height}}&width={{width}}&strip_width={{strip_width}}&max_strips={{max_strips}}&kind={{kind}}&radius={{radius}}&radius_inner={{radius_inner}}&f_={{f_}}&fi_enhancement_color={{fi_enhancement_color}}&fi_enhancement_contrast={{fi_enhancement_contrast}}&fi_enhancement_brightness={{fi_enhancement_brightness}}&fi_enhancement_sharpness={{fi_enhancement_sharpness}}" alt="Source Render"/>
-        </div>
-    </div>
-
+            <div class="controls-actions">
+                <button type="submit" class="btn btn-primary"><i class="icon icon-play"></i> Render</button>
+            </div>
+        </form>
+    </main>
 
     <script>
-        async function render() {
-            const height = document.getElementById('height').value;
-            const width = document.getElementById('width').value;
-            const strip_width = document.getElementById('strip_width').value;
-            const max_strips = document.getElementById('max_strips').value;
-            const kind = document.getElementById('kind').value;
-            const radius = document.getElementById('radius').value;
-            const radius_inner = document.getElementById('radius_inner').value;
-            const fi_enhancement_color = document.getElementById('fi_enhancement_color').value;
-            const fi_enhancement_contrast = document.getElementById('fi_enhancement_contrast').value;
-            const fi_enhancement_brightness = document.getElementById('fi_enhancement_brightness').value;
-            const fi_enhancement_sharpness = document.getElementById('fi_enhancement_sharpness').value;
-            const f_ = document.getElementById('f_').value;
+        const SOURCE_ID = {{ source.id }};
 
-            const img = document.getElementById('source-render');
-            const btn = document.getElementById('download-button');
-            const lbl = document.getElementById('mb-param-lbl')
+        const form = document.getElementById('params');
+        const stage = document.getElementById('stage');
+        const img = document.getElementById('source-render');
 
-            let url = [`/api/source/{{ source.id }}/render`,
-                `?height=${height}`,
-                `&width=${width}`,
-                `&strip_width=${strip_width}`,
-                `&max_strips=${max_strips}`,
-                `&kind=${kind}`,
-                `&radius=${radius}`,
-                `&radius_inner=${radius_inner}`,
-                `&f_=${f_}`,
-                `&fi_enhancement_color=${fi_enhancement_color}`,
-                `&fi_enhancement_contranst=${fi_enhancement_contrast}`,
-                `&fi_enhancement_brightness=${fi_enhancement_brightness}`,
-                `&fi_enhancement_sharpness=${fi_enhancement_sharpness}`        
-            ].join('');
+        let zoom = null; // null = fit to the screen, otherwise a factor of the image's natural size
 
-            //console.log("url: ", url, "f: ", f);
+        function render() {
+            const params = new URLSearchParams(new FormData(form));
+            const url = `/api/source/${SOURCE_ID}/render?${params}`;
+
+            stage.classList.remove('error');
+            stage.classList.add('loading');
 
             img.src = url;
-            btn.href = url;
-            lbl.textContent = `(size: ${width}x${height}, strip_width: ${strip_width}, max_strips: ${max_strips})`
+            document.getElementById('download-button').href = url;
+
+            // keep the page url in sync so a render can be shared or reloaded
+            history.replaceState(null, '', `${location.pathname}?${params}`);
+
+            updateCaption();
         }
 
-        async function zoom(value) {
-            const canva = document.getElementById("source-render");
-            const lbl = document.getElementById('mb-zoom-lbl');
-            
-            if (!canva.style.scale) {
-                canva.style.scale = 1
-            }
-            
-            let scale = parseFloat(canva.style.scale) + value;
-            
-            scale = Math.min(scale, 10.0);
-            scale = Math.max(scale, 0.1);
+        function updateCaption() {
+            const p = new FormData(form);
+            const shape = p.get('kind') === '1' ? 'circle' : 'line';
+            const color = p.get('color_mode') === '1' ? 'brightest' : 'average';
 
-            canva.style.scale = scale;
-            
-            lbl.textContent = `(${scale}x)`;
+            document.getElementById('caption').textContent =
+                `${p.get('width')}×${p.get('height')} · ${shape} · ${p.get('max_strips')} strips · ${color}`;
         }
 
-        async function zoomin() {
-            zoom(0.1);
+        function applyZoom() {
+            stage.classList.toggle('zoomed', zoom !== null);
+            img.style.width = zoom === null ? '' : `${Math.round(img.naturalWidth * zoom)}px`;
+            document.getElementById('zoom-level').textContent = zoom === null ? 'fit' : `${Math.round(zoom * 100)}%`;
         }
 
-        async function zoomout() {
-            zoom(-0.1);
+        function zoomBy(factor) {
+            // start from the size it is shown at right now
+            const current = zoom ?? (img.clientWidth / img.naturalWidth || 1);
+
+            zoom = Math.min(10, Math.max(0.1, current * factor));
+
+            applyZoom();
         }
+
+        function zoomFit() {
+            zoom = null;
+
+            applyZoom();
+        }
+
+        img.addEventListener('load', () => {
+            stage.classList.remove('loading');
+            applyZoom();
+        });
+
+        img.addEventListener('error', () => {
+            stage.classList.remove('loading');
+            stage.classList.add('error');
+        });
+
+        if (img.complete) {
+            stage.classList.remove('loading');
+            if (img.naturalWidth === 0) stage.classList.add('error');
+        }
+
+        // segmented options render right away, numbers wait for the render button
+        for (const radio of form.querySelectorAll('input[type="radio"]')) {
+            radio.addEventListener('change', () => {
+                form.dataset.kind = new FormData(form).get('kind');
+                render();
+            });
+        }
+
+        document.getElementById('download-button').href = img.getAttribute('src');
+        updateCaption();
     </script>
 </body>
 </html>
