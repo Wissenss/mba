@@ -240,14 +240,29 @@ def get_source_thumbnail(source_id):
 def get_contributors():
     return render_template('contributors.html')
 
+# ------------------------------------------
+# intended public folders
+
 @app.route('/assets/fonts/<path:filename>')
 def asset_fonts(filename):
     # the ui uses the same fonts as the framed renders
     return send_from_directory(os.path.join('assets', 'fonts'), filename)
 
-@app.route('/static/<path:filename>')
-def static_file(filename):
+@app.route('/static/css/<path:filename>')
+def static_css_file(filename):
     return send_file(os.path.join('static', 'css', filename))
+
+@app.route('/static/fonts/<path:filename>')
+def static_fonts_file(filename):
+    return send_file(os.path.join('static', 'fonts', filename))
+
+@app.route('/vendor/kenney-icon-font/css/<path:filename>')
+def kennyiconfont_css_file(filename):
+    return send_from_directory(os.path.join('vendor', 'kenney-icon-font', 'css'), filename)
+
+@app.route('/vendor/kenney-icon-font/fonts/<path:filename>')
+def kennyiconfont_fonts_file(filename):
+    return send_from_directory(os.path.join('vendor', 'kenney-icon-font', 'fonts'), filename)
 
 if __name__ == "__main__":
     app.run()

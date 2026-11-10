@@ -1,0 +1,6 @@
+[submodule "kenney-icon-font"]
+	path = kenney-icon-font
+	url = https://github.com/Wissenss/kenney-icon-font.git
+[submodule "vendor/kenney-icon-font"]
+	path = vendor/kenney-icon-font
+	url = https://github.com/Wissenss/kenney-icon-font.git
